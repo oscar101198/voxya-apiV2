@@ -1,0 +1,82 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: voxya-postgres
+    environment:
+      POSTGRES_DB: voxya
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - voxya-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d voxya"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NestJS Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: voxya-api
+    user: "1000:1000" # Use node user (UID 1000)
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_NAME: voxya
+      PORT: 3003
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_PRIVATE_KEY: VOXYA_LOCAL_PRIVATE_KEY
+      JWT_ACCESS_TOKEN_EXPIRATION_TIME_IN_MILLISECONDS: 604800000
+      ALGORITHM: HS256
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - voxya-network
+    restart: unless-stopped
+    command: yarn start:dev
+
+  # Redis (for queues and caching)
+  redis:
+    image: redis:7-alpine
+    container_name: voxya-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - voxya-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  voxya-network:
+    driver: bridge

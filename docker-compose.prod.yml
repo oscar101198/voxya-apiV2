@@ -1,0 +1,77 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: voxya-postgres-prod
+    environment:
+      POSTGRES_DB: voxya
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - voxya-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d voxya"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NestJS Application (Production)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voxya-api-prod
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: voxya
+      PORT: 3003
+      DB_SSL: false
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_ACCESS_TOKEN_EXPIRATION_TIME_IN_MILLISECONDS: 604800000
+      ALGORITHM: HS256
+      REDIS_HOST: redis
+      REDIS_PORT: 6380
+      FIREBASE_SERVICE_ACCOUNT_PATH: voxya_firebase.json
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./voxya_firebase.json:/usr/src/app/voxya_firebase.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - voxya-network
+    restart: unless-stopped
+
+  # Redis (for caching)
+  redis:
+    image: redis:7-alpine
+    container_name: voxya-redis-prod
+    ports:
+      - "6380:6380"
+    volumes:
+      - redis_data:/data
+    networks:
+      - voxya-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  voxya-network:
+    driver: bridge

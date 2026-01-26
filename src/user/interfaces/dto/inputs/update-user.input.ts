@@ -1,0 +1,83 @@
+import { ApiPropertyOptional } from "@nestjs/swagger";
+import { IsEmail, IsOptional, IsString, MaxLength } from "class-validator";
+
+export class UpdateUserInput {
+  @ApiPropertyOptional({
+    description: "Email de l'utilisateur",
+    example: "john.doe@example.com",
+    maxLength: 255,
+  })
+  @IsOptional()
+  @IsEmail({}, { message: "L'email doit être valide" })
+  @MaxLength(255, {
+    message: "L'email ne peut pas dépasser 255 caractères",
+  })
+  email?: string;
+
+  @ApiPropertyOptional({
+    description: "Mot de passe",
+    example: "nouveaumotdepasse123",
+  })
+  @IsOptional()
+  @IsString()
+  password?: string;
+
+  @ApiPropertyOptional({
+    description: "Prénom de l'utilisateur",
+    example: "John",
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100, {
+    message: "Le prénom ne peut pas dépasser 100 caractères",
+  })
+  firstName?: string;
+
+  @ApiPropertyOptional({
+    description: "Nom de famille de l'utilisateur",
+    example: "Doe",
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100, {
+    message: "Le nom de famille ne peut pas dépasser 100 caractères",
+  })
+  lastName?: string;
+
+  @ApiPropertyOptional({
+    description: "Numéro de téléphone de l'utilisateur",
+    example: "+33 1 23 45 67 89",
+    maxLength: 20,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20, {
+    message: "Le numéro de téléphone ne peut pas dépasser 20 caractères",
+  })
+  phoneNumber?: string;
+
+  @ApiPropertyOptional({
+    description: "Plan d'abonnement",
+    example: "free",
+  })
+  @IsOptional()
+  @IsString()
+  subscriptionPlan?: string;
+
+  @ApiPropertyOptional({
+    description: "Identifiant Wildix",
+    example: "wildix_id_123",
+  })
+  @IsOptional()
+  @IsString()
+  wildixId?: string;
+
+  @ApiPropertyOptional({
+    description: "Indique si l'utilisateur est actif",
+    example: true,
+  })
+  @IsOptional()
+  isActive?: boolean;
+}

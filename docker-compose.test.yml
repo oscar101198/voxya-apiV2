@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database for Tests
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: voxya-postgres-test
+    environment:
+      POSTGRES_DB: voxya_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432" # Different port to avoid conflicts
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    networks:
+      - voxya-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d voxya_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Redis for Tests
+  redis-test:
+    image: redis:7-alpine
+    container_name: voxya-redis-test
+    ports:
+      - "6381:6379" # Different port to avoid conflicts
+    networks:
+      - voxya-test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_test_data:
+
+networks:
+  voxya-test-network:
+    driver: bridge
