@@ -27,8 +27,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException("User is not active");
     }
     return {
-      user: { ...user },
-      tenantId: user.tenantId,
+      ...user,
     };
   }
 }

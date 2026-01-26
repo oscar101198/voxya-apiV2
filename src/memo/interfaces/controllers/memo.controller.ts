@@ -57,8 +57,7 @@ export class MemoController {
 
     const memo = await this.memoService.createMemo(
       file,
-      user.id,
-      user.tenantId
+      user.id
     );
 
     return {

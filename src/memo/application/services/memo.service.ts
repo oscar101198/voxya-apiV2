@@ -70,12 +70,11 @@ export class MemoService {
   async createMemo(
     file: FileUpload,
     userId: string,
-    tenantId: string
   ): Promise<MemoEntity> {
     // 1. Validate that the user exists and belongs to the tenant
-    const user = await this.userRepository.findById(userId, tenantId);
+    const user = await this.userRepository.findById(userId, null);
     if (!user) {
-      throw new NotFoundException("User not found or does not belong to tenant");
+      throw new NotFoundException("User not found");
     }
 
     // 2. Validate the audio file

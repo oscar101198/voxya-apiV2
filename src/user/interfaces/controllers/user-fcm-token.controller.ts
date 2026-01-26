@@ -27,17 +27,14 @@ import {
     @Payload({ code: DefaultCodeEnum.SUCCESS_OK, type: User })
     async registerFcmToken(
       @GetAuthenticatedUser()
-      {
-        user,
-        tenantId,
-      }: AuthenticatedUser & { tenantId: string },
+      user: AuthenticatedUser,
       @Body() input: RegisterFcmTokenInput
     ): Promise<User> {
       try {
         return await this.userService.registerFcmToken(
           user.id,
           input,
-          tenantId
+          user.tenantId
         );
       } catch (error) {
         if (error instanceof HttpException) {
