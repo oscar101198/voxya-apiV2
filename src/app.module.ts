@@ -3,6 +3,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { DatabaseModule } from "./infrastructure/database/database.module";
 import { FirebaseModule } from "./infrastructure/firebase";
+import { MemoInterfacesModule } from "./memo/interfaces/memo-interfaces.module";
 import { StatisticInterfacesModule } from "./statistic/interfaces/statistic-interfaces.module";
 import { TenantModule } from "./tenant/interfaces";
 import { UserInterfacesModule } from "./user/interfaces/user-interfaces.module";
@@ -31,6 +32,7 @@ import { UserInterfacesModule } from "./user/interfaces/user-interfaces.module";
     UserInterfacesModule,
     TenantModule,
     StatisticInterfacesModule,
+    MemoInterfacesModule,
   ],
   controllers: [],
   providers: [],
