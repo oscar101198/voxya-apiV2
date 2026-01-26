@@ -41,12 +41,20 @@ services:
       JWT_PRIVATE_KEY: VOXYA_LOCAL_PRIVATE_KEY
       JWT_ACCESS_TOKEN_EXPIRATION_TIME_IN_MILLISECONDS: 604800000
       ALGORITHM: HS256
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY_ID: minioadmin
+      MINIO_SECRET_ACCESS_KEY: minioadmin
+      MINIO_BUCKET_NAME: memos
+      MINIO_USE_SSL: "false"
+      MINIO_PORT: "9000"
     ports:
       - "3003:3003"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     volumes:
       - .:/app
@@ -73,9 +81,32 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # MinIO (for object storage)
+  minio:
+    image: minio/minio:latest
+    container_name: voxya-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - voxya-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
+  minio_data:
 
 networks:
   voxya-network:
