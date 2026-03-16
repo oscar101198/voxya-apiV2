@@ -41,6 +41,12 @@ services:
       REDIS_PORT: 6380
       FIREBASE_SERVICE_ACCOUNT_PATH: voxya_firebase.json
       CORS_ORIGINS: ${CORS_ORIGINS}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY_ID:  ${MINIO_ACCESS_KEY_ID}
+      MINIO_SECRET_ACCESS_KEY:  ${MINIO_SECRET_ACCESS_KEY}
+      MINIO_BUCKET_NAME: voxya-storage
+      MINIO_USE_SSL: "true"
+      MINIO_PORT: "9000"
     ports:
       - "3003:3003"
     volumes:
