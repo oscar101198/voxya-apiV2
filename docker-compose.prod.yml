@@ -45,7 +45,7 @@ services:
       MINIO_ACCESS_KEY_ID:  ${MINIO_ACCESS_KEY_ID}
       MINIO_SECRET_ACCESS_KEY:  ${MINIO_SECRET_ACCESS_KEY}
       MINIO_BUCKET_NAME: voxya-storage
-      MINIO_USE_SSL: "true"
+      MINIO_USE_SSL: "false"
       MINIO_PORT: "9000"
     ports:
       - "3003:3003"
