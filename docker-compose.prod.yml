@@ -48,6 +48,9 @@ services:
       MINIO_BUCKET_NAME: voxya-storage
       MINIO_USE_SSL: "false"
       MINIO_PORT: "9000"
+      WILDIX_BASE_URL: ${WILDIX_BASE_URL}
+      WILDIX_API_KEY: ${WILDIX_API_KEY}
+      WILDIX_SIP_DOMAIN: ${WILDIX_SIP_DOMAIN}
     ports:
       - "3003:3003"
     volumes:
