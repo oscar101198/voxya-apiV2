@@ -11,6 +11,13 @@ export class UserAuthOutput {
   accessToken: string;
 
   @ApiProperty({
+    type: String,
+    nullable: false,
+    description: "Opaque refresh token; use POST /user/refresh to get a new access token.",
+  })
+  refreshToken: string;
+
+  @ApiProperty({
     type: UserEntity,
     required: false,
     nullable: false,

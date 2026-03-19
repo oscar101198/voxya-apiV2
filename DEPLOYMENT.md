@@ -98,7 +98,8 @@ PORT=3003
 
 # JWT
 JWT_PRIVATE_KEY=<CLE_PRIVEE_JWT_SECURISEE>
-JWT_ACCESS_TOKEN_EXPIRATION_TIME_IN_MILLISECONDS=604800000
+JWT_ACCESS_TOKEN_EXPIRATION_TIME_IN_MILLISECONDS=900000
+JWT_REFRESH_TOKEN_EXPIRATION_TIME_IN_MILLISECONDS=604800000
 ALGORITHM=HS256
 
 # Redis (optionnel)
@@ -233,6 +234,33 @@ docker-compose -f docker-compose.prod.yml down
 # Arrêter et supprimer tout (y compris les volumes - ATTENTION !)
 docker-compose -f docker-compose.prod.yml down -v
 ```
+
+### Connexion à la BDD de prod depuis DBeaver (ou autre client local)
+
+Pour vous connecter à la base PostgreSQL de production depuis DBeaver sur votre machine :
+
+1. **Option recommandée : tunnel SSH** (évite d’exposer le port 5432 sur Internet)
+   - Dans DBeaver : **Nouvelle connexion** → **PostgreSQL**.
+   - Onglet **SSH** : cocher **Use SSH Tunnel**.
+     - **Host/IP** : IP ou hostname de votre serveur de prod.
+     - **Port** : 22.
+     - **User** : votre utilisateur SSH (ex. `ubuntu`, `root`).
+     - **Auth method** : clé privée ou mot de passe.
+   - Onglet **Main** :
+     - **Host** : `localhost` (ou `127.0.0.1`) — le tunnel fait passer le trafic vers le serveur.
+     - **Port** : `5432`.
+     - **Database** : `voxya`.
+     - **Username** : `postgres`.
+     - **Password** : la valeur de `DB_PASSWORD` du `.env` de prod sur le serveur.
+
+2. **Option directe** (si le port 5432 est exposé et autorisé par le firewall)
+   - **Host** : IP ou hostname du serveur de prod.
+   - **Port** : `5432`.
+   - **Database** : `voxya`.
+   - **Username** : `postgres`.
+   - **Password** : `DB_PASSWORD` du `.env` de prod.
+
+Le `docker-compose.prod.yml` expose déjà le port `5432` sur l’hôte. Préférez le tunnel SSH pour la sécurité.
 
 ### Base de données
 

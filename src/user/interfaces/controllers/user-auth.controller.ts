@@ -1,11 +1,24 @@
-import { Body, Controller, NotFoundException, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Post,
+} from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { plainToInstance } from "class-transformer";
 import { Payload } from "src/default/default.decorators";
 import { DefaultCodeEnum } from "src/default/default.enums";
 import { UserService } from "src/user/application";
 import { UserEntity } from "src/user/infrastructure/typeorm/entities";
-import { UserAuthInput, UserAuthOutput } from "../dto";
+import {
+  LogoutInput,
+  RefreshTokenInput,
+  RefreshTokenOutput,
+  UserAuthInput,
+  UserAuthOutput,
+} from "../dto";
 
 @Controller()
 @ApiTags("user")
@@ -25,18 +38,33 @@ export class UserAuthController {
       throw new NotFoundException("User is not active");
     }
 
-    const result = this.userService.auth({ user, password: input.password });
+    const result = await this.userService.auth({
+      user,
+      password: input.password,
+    });
 
     if (!result.accessToken) {
       throw new NotFoundException("Wrong credentials");
     }
 
-    // Update last login
     await this.userService.updateLastLogin(user.id);
 
     return {
       user: plainToInstance(UserEntity, user),
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     };
+  }
+
+  @Post("user/refresh")
+  @Payload({ code: DefaultCodeEnum.SUCCESS_OK, type: RefreshTokenOutput })
+  async refresh(@Body() input: RefreshTokenInput): Promise<RefreshTokenOutput> {
+    return this.userService.refresh(input.refreshToken);
+  }
+
+  @Post("user/logout")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(@Body() input: LogoutInput): Promise<void> {
+    await this.userService.revokeRefreshToken(input.refreshToken);
   }
 }

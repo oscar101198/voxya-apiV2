@@ -65,8 +65,10 @@ export class StorageService implements OnModuleInit {
       );
       this.logger.log(`Bucket ${this.config.bucketName} already exists`);
     } catch (error: any) {
+      const status = error.$metadata?.httpStatusCode;
+
       // If bucket doesn't exist (404), create it
-      if (error.name === "NotFound" || error.$metadata?.httpStatusCode === 404) {
+      if (error.name === "NotFound" || status === 404) {
         try {
           await this.s3Client.send(
             new CreateBucketCommand({ Bucket: this.config.bucketName })
@@ -79,13 +81,34 @@ export class StorageService implements OnModuleInit {
           );
           throw createError;
         }
-      } else {
-        this.logger.error(
-          `Failed to check bucket existence: ${error.message}`,
-          error.stack
-        );
-        throw error;
+        return;
       }
+
+      // 403: MinIO can return 403 when bucket is missing; try create, then clear credential hint if still 403
+      if (status === 403) {
+        try {
+          await this.s3Client.send(
+            new CreateBucketCommand({ Bucket: this.config.bucketName })
+          );
+          this.logger.log(`Bucket ${this.config.bucketName} created successfully`);
+          return;
+        } catch (createError: any) {
+          if (createError.$metadata?.httpStatusCode === 403) {
+            this.logger.error(
+              `MinIO access denied (403). Set MINIO_ACCESS_KEY_ID and MINIO_SECRET_ACCESS_KEY to match MinIO root (MINIO_ROOT_USER / MINIO_ROOT_PASSWORD). Bucket: ${this.config.bucketName}`
+            );
+          } else {
+            this.logger.error(`Failed to create bucket: ${createError.message}`, createError.stack);
+          }
+          throw createError;
+        }
+      }
+
+      this.logger.error(
+        `Failed to check bucket existence: ${error.message}`,
+        error.stack
+      );
+      throw error;
     }
   }
 

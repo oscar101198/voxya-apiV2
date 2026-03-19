@@ -39,6 +39,9 @@ COPY --chown=nestjs:nodejs nest-cli.json tsconfig*.json ./
 # Copy CSV file for seeding (must be in dist/ as the seed script looks for it there)
 COPY --chown=nestjs:nodejs test-import-sample.csv ./dist/
 
+# Copy healthcheck script (used by HEALTHCHECK)
+COPY --chown=nestjs:nodejs healthcheck.js ./
+
 # Switch to non-root user
 USER nestjs
 

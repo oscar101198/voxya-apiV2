@@ -1,9 +1,22 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { compareSync, hashSync } from "bcryptjs";
 import { plainToClass } from "class-transformer";
-import { generateAuthToken } from "src/_utils";
+import {
+  createRefreshTokenValue,
+  generateAccessToken,
+  hashRefreshToken,
+} from "src/_utils";
 import { UserEntity } from "src/user/infrastructure/typeorm/entities";
-import { UserOrmRepository } from "src/user/infrastructure/typeorm/repositories";
+import {
+  RefreshTokenOrmRepository,
+  UserOrmRepository,
+} from "src/user/infrastructure/typeorm/repositories";
 import {
   CreateUserInput,
   RegisterFcmTokenInput,
@@ -14,20 +27,40 @@ import {
 export class UserService {
   constructor(
     @Inject(UserOrmRepository)
-    private readonly userRepository: UserOrmRepository
+    private readonly userRepository: UserOrmRepository,
+    @Inject(RefreshTokenOrmRepository)
+    private readonly refreshTokenRepository: RefreshTokenOrmRepository,
+    private readonly configService: ConfigService
   ) {}
 
-  public auth({ user, password }: { user: UserEntity; password: string }) {
-    if (Boolean(user) && compareSync(password, user.password))
-      return {
-        accessToken: generateAuthToken({
-          userID: user.id,
-        }),
-      };
+  public async auth({
+    user,
+    password,
+  }: {
+    user: UserEntity;
+    password: string;
+  }): Promise<{ accessToken: string; refreshToken: string } | { accessToken: null }> {
+    if (!user || !compareSync(password, user.password)) {
+      return { accessToken: null };
+    }
 
-    return {
-      accessToken: null,
-    };
+    const accessToken = generateAccessToken({ userID: user.id });
+    const { token: refreshToken, tokenHash } = createRefreshTokenValue();
+    const refreshExpirationMs =
+      Number(
+        this.configService.get(
+          "JWT_REFRESH_TOKEN_EXPIRATION_TIME_IN_MILLISECONDS"
+        )
+      ) || 604800000; // default 7 days
+    const expiresAt = new Date(Date.now() + refreshExpirationMs);
+
+    await this.refreshTokenRepository.save({
+      userId: user.id,
+      tokenHash,
+      expiresAt,
+    });
+
+    return { accessToken, refreshToken };
   }
 
   // Find user by email without tenant filter (for login)
@@ -149,6 +182,10 @@ export class UserService {
       throw new Error("Failed to update user");
     }
 
+    if (input.password) {
+      await this.revokeRefreshTokensByUserId(id);
+    }
+
     return plainToClass(UserEntity, updatedUser, {
       excludeExtraneousValues: true,
     });
@@ -179,7 +216,47 @@ export class UserService {
     );
   }
 
-    // Register FCM token
+  async refresh(
+    refreshTokenValue: string
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const tokenHash = hashRefreshToken(refreshTokenValue);
+    const record = await this.refreshTokenRepository.findByTokenHash(tokenHash);
+    if (!record || record.expiresAt <= new Date()) {
+      throw new UnauthorizedException("Invalid or expired refresh token");
+    }
+    const user = await this.userRepository.findByIdForAuth(record.userId);
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException("User not found or inactive");
+    }
+    // Rotation: delete old refresh token and issue a new one
+    await this.refreshTokenRepository.deleteByTokenHash(tokenHash);
+    const accessToken = generateAccessToken({ userID: user.id });
+    const { token: newRefreshToken, tokenHash: newTokenHash } =
+      createRefreshTokenValue();
+    const refreshExpirationMs =
+      Number(
+        this.configService.get(
+          "JWT_REFRESH_TOKEN_EXPIRATION_TIME_IN_MILLISECONDS"
+        )
+      ) || 604800000; // default 7 days
+    await this.refreshTokenRepository.save({
+      userId: user.id,
+      tokenHash: newTokenHash,
+      expiresAt: new Date(Date.now() + refreshExpirationMs),
+    });
+    return { accessToken, refreshToken: newRefreshToken };
+  }
+
+  async revokeRefreshTokensByUserId(userId: string): Promise<void> {
+    await this.refreshTokenRepository.deleteByUserId(userId);
+  }
+
+  async revokeRefreshToken(refreshTokenValue: string): Promise<void> {
+    const tokenHash = hashRefreshToken(refreshTokenValue);
+    await this.refreshTokenRepository.deleteByTokenHash(tokenHash);
+  }
+
+  // Register FCM token
     async registerFcmToken(
       userId: string,
       input: RegisterFcmTokenInput,

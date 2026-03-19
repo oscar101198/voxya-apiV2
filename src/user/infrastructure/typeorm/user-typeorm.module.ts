@@ -1,14 +1,14 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { TenantEntity } from "src/tenant/infrastructure/typeorm/entities";
-import { UserEntity } from "./entities";
-import { UserOrmRepository } from "./repositories";
+import { RefreshTokenEntity, UserEntity } from "./entities";
+import { RefreshTokenOrmRepository, UserOrmRepository } from "./repositories";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity, TenantEntity]),
+    TypeOrmModule.forFeature([UserEntity, TenantEntity, RefreshTokenEntity]),
   ],
-  providers: [UserOrmRepository],
-  exports: [UserOrmRepository],
+  providers: [UserOrmRepository, RefreshTokenOrmRepository],
+  exports: [UserOrmRepository, RefreshTokenOrmRepository],
 })
 export class UserTypeOrmModule {}
